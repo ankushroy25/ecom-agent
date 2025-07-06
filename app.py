@@ -492,6 +492,45 @@ def continue_chat():
         return jsonify({"error": "Failed to process revision", "details": str(e)})
 
 
+@app.route("/cart/add-all", methods=["POST"])
+def add_items_to_cart():
+    """Add multiple food items to user's cart via external API"""
+    data = request.get_json()
+    food_selection = data.get("food_selection")
+    # user_id = data.get("user_id")
+    user_id = "5d320bcc-5ccd-4510-aace-695a3d864c18"
+
+    if not food_selection or not user_id:
+        return jsonify({"error": "Missing food_selection or user_id"}), 400
+
+    added_items = []
+    failed_items = []
+
+    for item in food_selection:
+        payload = {
+            "user_id": user_id,
+            "restaurant_id": item.get("restaurant_id"),
+            "item_id": item.get("item_id"),
+            "quantity": int(item.get("quantity", 1)),
+            "producturl": item.get("producturl") or item.get("image_url"),
+        }
+
+        try:
+            response = requests.post(f"{SERVER_URL}/cart/add", json=payload)
+            if response.status_code == 200:
+                added_items.append(payload)
+            else:
+                failed_items.append({"item": item, "reason": response.text})
+        except Exception as e:
+            failed_items.append({"item": item, "reason": str(e)})
+
+    return jsonify({
+        "status": "completed",
+        "added": added_items,
+        "failed": failed_items
+    })
+
+
 @app.route("/health", methods=["GET"])
 def health_check():
     """Health check endpoint"""
