@@ -512,7 +512,7 @@ def add_items_to_cart():
             "restaurant_id": item.get("restaurant_id"),
             "item_id": item.get("item_id"),
             "quantity": int(item.get("quantity", 1)),
-            "producturl": item.get("producturl") or item.get("image_url"),
+            # "producturl": item.get("producturl") or item.get("image_url"),
         }
 
         try:
