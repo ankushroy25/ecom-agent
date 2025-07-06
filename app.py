@@ -288,17 +288,21 @@ def get_final_combined_selection(user_query, food_results, product_results):
                 "item_name": "name of the 1st food item",
                 "item_id": "ID of the 1st food item",
                 "quantity": "number of items to order",
-                "price": "price of this item",
+                "price": "price of this single item not multiplied by quantity",
                 "reviews": "rating or reviews of the item",
-                "restaurant_id": "ID of the restaurant as in the items data"
+                "restaurant_id": "ID of the restaurant as in the items data",
+                "image_url": "URL of the food item image",
+                "description": "brief description of the food item"
             },
             {
                 "item_name": "name of the 2nd food item",
                 "item_id": "ID of the 2nd food item",
                 "quantity": "number of items to order",
-                "price": "price of this item",
+                "price": "price of this single item not multiplied by quantity",
                 "reviews": "rating or reviews of the item",
-                "restaurant_id": "ID of the restaurant as in the items data"
+                "restaurant_id": "ID of the restaurant as in the items data",
+                "image_url": "URL of the food item image",
+                "description": "brief description of the food item"
             },
             //... rest of the food
         ],
@@ -307,19 +311,21 @@ def get_final_combined_selection(user_query, food_results, product_results):
                 "product_name": "name of the 1st product",
                 "product_id": "ID of the 1st product",
                 "quantity": "number of products to order",
-                "price": "price of this product",
+                "price": "price of this single product not multiplied by quantity",
                 "reviews": "rating or reviews of the product",
                 "category": "category of the product",
                 "description": "brief description of the product"
+                "producturl": "URL of the product image"
             },
             {
                 "product_name": "name of the 2nd product",
                 "product_id": "ID of the 2nd product",
                 "quantity": "number of products to order",
-                "price": "price of this product",
+                "price": "price of this single product not multiplied by quantity",
                 "reviews": "rating or reviews of the product",
                 "category": "category of the product",
-                "description": "brief description of the product"
+                "description": "brief description of the product",
+                "producturl": "URL of the product image"
             },
             //... rest of the products
         ]
@@ -343,7 +349,7 @@ def get_final_combined_selection(user_query, food_results, product_results):
     completion = client.chat.completions.create(
         model="meta-llama/llama-4-scout-17b-16e-instruct",
         messages=messages,
-        temperature=0.1,
+        temperature=0,
         max_completion_tokens=1024,
         top_p=1,
         stream=False,
