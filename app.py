@@ -1,3 +1,4 @@
+import uuid
 from flask import Flask, request, jsonify, session
 import requests
 import os
@@ -494,35 +495,71 @@ def continue_chat():
 
 @app.route("/cart/add-all", methods=["POST"])
 def add_items_to_cart():
-    """Add multiple food items to user's cart via external API"""
+    """Add both food items via external API and products directly to DB"""
     data = request.get_json()
-    food_selection = data.get("food_selection")
-    # user_id = data.get("user_id")
+    food_selection = data.get("food_selection", [])
+    product_selection = data.get("product_selection", [])
     user_id = "5d320bcc-5ccd-4510-aace-695a3d864c18"
 
-    if not food_selection or not user_id:
-        return jsonify({"error": "Missing food_selection or user_id"}), 400
+    if not user_id:
+        return jsonify({"error": "Missing user_id"}), 400
 
-    added_items = []
-    failed_items = []
+    added_items = {"food": [], "product": []}
+    failed_items = {"food": [], "product": []}
 
+    # Step 1: Add food items via external API
     for item in food_selection:
         payload = {
             "user_id": user_id,
             "restaurant_id": item.get("restaurant_id"),
             "item_id": item.get("item_id"),
-            "quantity": int(item.get("quantity", 1)),
-            # "producturl": item.get("producturl") or item.get("image_url"),
+            "quantity": int(item.get("quantity", 1))
         }
-
         try:
             response = requests.post(f"{SERVER_URL}/cart/add", json=payload)
             if response.status_code == 200:
-                added_items.append(payload)
+                added_items["food"].append(payload)
             else:
-                failed_items.append({"item": item, "reason": response.text})
+                failed_items["food"].append(
+                    {"item": item, "reason": response.text})
         except Exception as e:
-            failed_items.append({"item": item, "reason": str(e)})
+            failed_items["food"].append({"item": item, "reason": str(e)})
+
+    # Step 2: Add products directly to DB
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"error": "Database connection failed"}), 500
+
+    try:
+        with conn.cursor() as cursor:
+            for product in product_selection:
+                try:
+                    cursor.execute("""
+                        INSERT INTO public.cart_items (cart_item_id, user_id, item_id, quantity, type, producturl)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                    """, (
+                        str(uuid.uuid4()),
+                        user_id,
+                        product.get("product_id"),
+                        int(product.get("quantity", 1)),
+                        product.get("category")[0],
+                        [product.get("producturl")]
+                    ))
+                    added_items["product"].append({
+                        "item_id": product.get("product_id"),
+                        "quantity": product.get("quantity"),
+                        "producturl": product.get("producturl"),
+                        "type": product.get("category")[0],
+                    })
+                except Exception as e:
+                    failed_items["product"].append(
+                        {"item": product, "reason": str(e)})
+        conn.commit()
+    except Exception as e:
+        print(f"Error inserting products: {e}")
+        return jsonify({"error": "Failed to insert product items", "details": str(e)}), 500
+    finally:
+        conn.close()
 
     return jsonify({
         "status": "completed",
